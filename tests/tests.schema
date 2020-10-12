@@ -449,6 +449,12 @@
       "$ref": "#/definitions/Teams.OnTeamUnarchived"
     },
     {
+      "$ref": "#/definitions/Teams.SendTaskModuleContinueResponse"
+    },
+    {
+      "$ref": "#/definitions/Teams.SendTaskModuleMessageResponse"
+    },
+    {
       "$ref": "#/definitions/Testbot.JavascriptAction"
     },
     {
@@ -3735,6 +3741,12 @@
         },
         {
           "$ref": "#/definitions/Teams.GetMeetingParticipant"
+        },
+        {
+          "$ref": "#/definitions/Teams.SendTaskModuleContinueResponse"
+        },
+        {
+          "$ref": "#/definitions/Teams.SendTaskModuleMessageResponse"
         },
         {
           "$ref": "#/definitions/Testbot.JavascriptAction"
@@ -10776,8 +10788,8 @@
         "implements(Microsoft.ITrigger)",
         "extends(Microsoft.OnCondition)"
       ],
-      "title": "OnTeamsTaskModuleFetch",
-      "description": "Actions triggered when a Teams InvokeActivity is received with activity.name='task/fetch'.",
+      "title": "On Teams Task Module Fetch",
+      "description": "Actions triggered when a Teams Invoke Activity is received with activity.name='task/fetch'.",
       "type": "object",
       "required": [
         "actions",
@@ -11283,6 +11295,106 @@
           "type": "string",
           "pattern": "^[a-zA-Z][a-zA-Z0-9.]*$",
           "const": "Teams.OnTeamUnarchived"
+        },
+        "$designer": {
+          "title": "Designer information",
+          "type": "object",
+          "description": "Extra information for the Bot Framework Composer."
+        }
+      }
+    },
+    "Teams.SendTaskModuleContinueResponse": {
+      "$role": "implements(Microsoft.IDialog)",
+      "title": "Send Task Module Continue Response",
+      "description": "Send a continue response to a Task Module request.",
+      "type": "object",
+      "required": [
+        "$kind"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^\\$": {
+          "title": "Tooling property",
+          "description": "Open ended property for tooling."
+        }
+      },
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "Id",
+          "description": "Optional id for the dialog"
+        },
+        "activity": {
+          "$kind": "Microsoft.IActivityTemplate",
+          "title": "Activity",
+          "description": "Activity to send, must contain an Attachment.",
+          "$ref": "#/definitions/Microsoft.IActivityTemplate"
+        },
+        "disabled": {
+          "$ref": "#/definitions/booleanExpression",
+          "title": "Disabled",
+          "description": "Optional condition which if true will disable this action.",
+          "examples": [
+            "=user.age > 3"
+          ]
+        },
+        "$kind": {
+          "title": "Kind of dialog object",
+          "description": "Defines the valid properties for the component you are configuring (from a dialog .schema file)",
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9.]*$",
+          "const": "Teams.SendTaskModuleContinueResponse"
+        },
+        "$designer": {
+          "title": "Designer information",
+          "type": "object",
+          "description": "Extra information for the Bot Framework Composer."
+        }
+      }
+    },
+    "Teams.SendTaskModuleMessageResponse": {
+      "$role": "implements(Microsoft.IDialog)",
+      "title": "Send Task Module Message Response",
+      "description": "Send a message response to a Task Module request.",
+      "type": "object",
+      "required": [
+        "$kind"
+      ],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^\\$": {
+          "title": "Tooling property",
+          "description": "Open ended property for tooling."
+        }
+      },
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "Id",
+          "description": "Optional id for the dialog"
+        },
+        "message": {
+          "$ref": "#/definitions/stringExpression",
+          "title": "Message",
+          "description": "The response message to send.",
+          "examples": [
+            "Thanks, have a nice day! :)"
+          ]
+        },
+        "disabled": {
+          "$ref": "#/definitions/booleanExpression",
+          "title": "Disabled",
+          "description": "Optional condition which if true will disable this action.",
+          "examples": [
+            "=user.age > 3"
+          ]
+        },
+        "$kind": {
+          "title": "Kind of dialog object",
+          "description": "Defines the valid properties for the component you are configuring (from a dialog .schema file)",
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9.]*$",
+          "const": "Teams.SendTaskModuleMessageResponse"
         },
         "$designer": {
           "title": "Designer information",
