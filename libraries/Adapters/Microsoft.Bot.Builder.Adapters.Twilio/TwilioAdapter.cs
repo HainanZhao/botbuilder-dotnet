@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Security.Authentication;
 using System.Security.Claims;
 using System.Security.Principal;
@@ -13,23 +14,27 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Bot.Builder.BotFramework;
 using Microsoft.Bot.Builder.Integration.AspNet.Core;
+using Microsoft.Bot.Connector.Authentication;
 using Microsoft.Bot.Schema;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Rest.TransientFaultHandling;
 
 namespace Microsoft.Bot.Builder.Adapters.Twilio
 {
     /// <summary>
     /// A <see cref="BotAdapter"/> that can connect to Twilio's SMS service.
     /// </summary>
-    public class TwilioAdapter : BotAdapter, IBotFrameworkHttpAdapter
+    public class TwilioAdapter : BotFrameworkAdapter, IBotFrameworkHttpAdapter
     {
         private readonly TwilioClientWrapper _twilioClient;
         private readonly ILogger _logger;
         private readonly TwilioAdapterOptions _options;
-
+        private readonly IConfiguration _configuration;
+        
         /// <summary>
         /// Initializes a new instance of the <see cref="TwilioAdapter"/> class using configuration settings.
         /// </summary>
@@ -44,24 +49,26 @@ namespace Microsoft.Bot.Builder.Adapters.Twilio
         /// <param name="adapterOptions">Options for the <see cref="TwilioAdapter"/>.</param>
         /// <param name="logger">The ILogger implementation this adapter should use.</param>
         public TwilioAdapter(IConfiguration configuration, TwilioAdapterOptions adapterOptions = null, ILogger logger = null)
-            : this(
-                new TwilioClientWrapper(new TwilioClientWrapperOptions(configuration["TwilioNumber"], configuration["TwilioAccountSid"], configuration["TwilioAuthToken"], new Uri(configuration["TwilioValidationUrl"]))), adapterOptions, logger)
-        {
+            : this(configuration, new TwilioClientWrapper(new TwilioClientWrapperOptions(configuration["TwilioNumber"], configuration["TwilioAccountSid"], configuration["TwilioAuthToken"], new Uri(configuration["TwilioValidationUrl"]))), adapterOptions, logger)
+        {            
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TwilioAdapter"/> class.
         /// </summary>
+        /// <param name="configuration">Configuration.</param>
         /// <param name="twilioClient">The Twilio client to connect to.</param>
         /// <param name="adapterOptions">Options for the <see cref="TwilioAdapter"/>.</param>
         /// <param name="logger">The ILogger implementation this adapter should use.</param>
-        public TwilioAdapter(TwilioClientWrapper twilioClient, TwilioAdapterOptions adapterOptions, ILogger logger = null)
+        public TwilioAdapter(IConfiguration configuration, TwilioClientWrapper twilioClient, TwilioAdapterOptions adapterOptions, ILogger logger = null) 
+            : base(new ConfigurationCredentialProvider(configuration))
         {
+            _configuration = configuration;
             _twilioClient = twilioClient ?? throw new ArgumentNullException(nameof(twilioClient));
             _logger = logger ?? NullLogger.Instance;
             _options = adapterOptions ?? new TwilioAdapterOptions();
         }
-
+        
         /// <summary>
         /// Sends activities to the conversation.
         /// </summary>
@@ -144,11 +151,21 @@ namespace Microsoft.Bot.Builder.Adapters.Twilio
             }
 
             var activity = TwilioHelper.PayloadToActivity(bodyDictionary);
-
+            var message = (TwilioMessage)activity.ChannelData;
+            
             // create a conversation reference
             using (var context = new TurnContext(this, activity))
             {
                 context.TurnState.Add("httpStatus", HttpStatusCode.OK.ToString("D"));
+                
+                var claimsIdentity = new ClaimsIdentity(new List<Claim>
+                {
+                    // Adding claims for both Emulator and Channel.
+                    new Claim(AuthenticationConstants.AudienceClaim, _configuration["MicrosoftAppId"]),
+                    new Claim(AuthenticationConstants.AppIdClaim, _configuration["MicrosoftAppId"]),
+                });
+
+                context.TurnState.Add(BotIdentityKey, claimsIdentity);
                 await RunPipelineAsync(context, bot.OnTurnAsync, cancellationToken).ConfigureAwait(false);
 
                 var statusCode = Convert.ToInt32(context.TurnState.Get<string>("httpStatus"), CultureInfo.InvariantCulture);

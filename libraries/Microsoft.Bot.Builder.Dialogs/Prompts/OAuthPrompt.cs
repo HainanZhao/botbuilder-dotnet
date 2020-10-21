@@ -326,6 +326,7 @@ namespace Microsoft.Bot.Builder.Dialogs
             switch (channelId)
             {
                 case Channels.Msteams:
+                case Channels.Twilio:
                     return true;
             }
 
@@ -349,6 +350,7 @@ namespace Microsoft.Bot.Builder.Dialogs
         private async Task SendOAuthCardAsync(ITurnContext turnContext, IMessageActivity prompt, CancellationToken cancellationToken = default)
         {
             BotAssert.ContextNotNull(turnContext);
+            string signinLink = string.Empty;
 
             if (!(turnContext.Adapter is IExtendedUserTokenProvider adapter))
             {
@@ -369,6 +371,7 @@ namespace Microsoft.Bot.Builder.Dialogs
                 if (!prompt.Attachments.Any(a => a.Content is SigninCard))
                 {
                     var signInResource = await adapter.GetSignInResourceAsync(turnContext, _settings.OAuthAppCredentials, _settings.ConnectionName, turnContext.Activity.From.Id, null, cancellationToken).ConfigureAwait(false);
+                    signinLink = signInResource.SignInLink;
                     prompt.Attachments.Add(new Attachment
                     {
                         ContentType = SigninCard.ContentType,
@@ -393,6 +396,7 @@ namespace Microsoft.Bot.Builder.Dialogs
                 var cardActionType = ActionTypes.Signin;
                 var signInResource = await adapter.GetSignInResourceAsync(turnContext, _settings.OAuthAppCredentials, _settings.ConnectionName, turnContext.Activity.From.Id, null, cancellationToken).ConfigureAwait(false);
                 var value = signInResource.SignInLink;
+                signinLink = signInResource.SignInLink;
 
                 // use the SignInLink when 
                 //   in speech channel or
@@ -446,7 +450,14 @@ namespace Microsoft.Bot.Builder.Dialogs
                 prompt.InputHint = InputHints.AcceptingInput;
             }
 
-            await turnContext.SendActivityAsync(prompt, cancellationToken).ConfigureAwait(false);
+            if (turnContext.Activity.ChannelId == Channels.Twilio)
+            {
+                await turnContext.SendActivityAsync(MessageFactory.Text(signinLink), cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                await turnContext.SendActivityAsync(prompt, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         private async Task<PromptRecognizerResult<TokenResponse>> RecognizeTokenAsync(DialogContext dc, CancellationToken cancellationToken = default)
